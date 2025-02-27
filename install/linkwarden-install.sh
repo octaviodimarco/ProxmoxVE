@@ -33,7 +33,9 @@ $STD apt-get install -y \
   mc \
   make \
   cargo \
-  gnupg
+  gnupg \
+  pkg-config \
+  libssl-dev  # Dependencias necesarias para native-tls
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Node.js Repository"
@@ -48,8 +50,12 @@ $STD apt-get install -y nodejs
 $STD npm install -g yarn
 msg_ok "Installed Node.js/Yarn"
 
+msg_info "Updating Rust"
+$STD rustup update  # Actualiza Rust a la última versión estable
+msg_ok "Updated Rust"
+
 msg_info "Installing Monolith"
-$STD cargo install monolith
+$STD cargo install monolith --locked  # Usa --locked para evitar problemas de dependencias
 export PATH=~/.cargo/bin:$PATH
 msg_ok "Installed Monolith"
 
