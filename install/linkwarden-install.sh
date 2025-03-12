@@ -3,8 +3,8 @@
 # Copyright (c) 2021-2025 tteck
 # Author: tteck (tteckster)
 # Co-Author: MickLesk (Canbiz)
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Source: https://linkwarden.app/
 
 # Solicitar credenciales al usuario
 read -p "Ingresa el host de PostgreSQL: " DB_HOST
@@ -32,6 +32,9 @@ $STD apt-get install -y \
   sudo \
   mc \
   make \
+  git \
+  postgresql \
+  build-essential \
   cargo \
   gnupg \
   pkg-config \
@@ -50,14 +53,14 @@ $STD apt-get install -y nodejs
 $STD npm install -g yarn
 msg_ok "Installed Node.js/Yarn"
 
-msg_info "Updating Rust"
-$STD rustup update  # Actualiza Rust a la última versión estable
-msg_ok "Updated Rust"
-
-msg_info "Installing Monolith"
-$STD cargo install monolith --locked  # Usa --locked para evitar problemas de dependencias
+msg_info "Installing Rust"
+wget -qL https://sh.rustup.rs
+$STD bash index.html -y --profile minimal
+echo 'export PATH=~/.cargo/bin:$PATH' >>~/.bashrc
 export PATH=~/.cargo/bin:$PATH
-msg_ok "Installed Monolith"
+rm index.html
+$STD cargo install monolith
+msg_ok "Installed Rust"
 
 # Guardar credenciales en un archivo
 {

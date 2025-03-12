@@ -26,12 +26,10 @@ function update_script() {
 
     if [[ ! -d /opt/actualbudget ]]; then
         msg_error "No ${APP} Installation Found!"
-        exit 1
+        exit
     fi
 
-    RELEASE=$(curl -s https://api.github.com/repos/actualbudget/actual/releases/latest | \
-              grep "tag_name" | awk -F '"' '{print substr($4, 2)}')
-
+    RELEASE=$(curl -s https://api.github.com/repos/actualbudget/actual/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
     if [[ ! -f /opt/actualbudget_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/actualbudget_version.txt)" ]]; then
         msg_info "Stopping ${APP}"
         systemctl stop actualbudget
@@ -39,11 +37,11 @@ function update_script() {
 
         msg_info "Updating ${APP} to ${RELEASE}"
         cd /tmp
-        wget -q "https://github.com/actualbudget/actual-server/archive/refs/tags/v${RELEASE}.tar.gz"
+        wget -q https://github.com/actualbudget/actual/archive/refs/tags/v${RELEASE}.tar.gz
 
         mv /opt/actualbudget /opt/actualbudget_bak
-        $STD tar -xzf "v${RELEASE}.tar.gz"
-        mv *ctual-server-* /opt/actualbudget
+        tar -xzf "v${RELEASE}.tar.gz"
+        mv actual-${RELEASE} /opt/actualbudget
 
         mkdir -p /opt/actualbudget-data/{server-files,upload,migrate,user-files,migrations,config}
         for dir in server-files .migrate user-files migrations; do
@@ -59,10 +57,15 @@ function update_script() {
             mv /opt/actualbudget/server-files/account.sqlite /opt/actualbudget-data/server-files/account.sqlite
         fi
 
+        if [[ -f /opt/actualbudget_bak/selfhost.key ]]; then
+            mv /opt/actualbudget_bak/selfhost.key /opt/actualbudget/selfhost.key
+            mv /opt/actualbudget_bak/selfhost.crt /opt/actualbudget/selfhost.crt
+        fi
+
         if [[ -f /opt/actualbudget_bak/.env ]]; then
             mv /opt/actualbudget_bak/.env /opt/actualbudget-data/.env
         else
-            cat <<EOF > /opt/actualbudget-data/.env
+            cat <<EOF >/opt/actualbudget-data/.env
 ACTUAL_UPLOAD_DIR=/opt/actualbudget-data/upload
 ACTUAL_DATA_DIR=/opt/actualbudget-data
 ACTUAL_SERVER_FILES_DIR=/opt/actualbudget-data/server-files
@@ -74,12 +77,12 @@ ACTUAL_HTTPS_CERT=/opt/actualbudget/selfhost.crt
 EOF
         fi
         cd /opt/actualbudget
-        $STD yarn install
-        echo "${RELEASE}" > /opt/actualbudget_version.txt
+        $STD yarn workspaces focus @actual-app/sync-server --production
+        echo "${RELEASE}" >/opt/actualbudget_version.txt
         msg_ok "Updated ${APP}"
 
         msg_info "Starting ${APP}"
-        cat <<EOF > /etc/systemd/system/actualbudget.service
+        cat <<EOF >/etc/systemd/system/actualbudget.service
 [Unit]
 Description=Actual Budget Service
 After=network.target
@@ -90,7 +93,7 @@ User=root
 Group=root
 WorkingDirectory=/opt/actualbudget
 EnvironmentFile=/opt/actualbudget-data/.env
-ExecStart=/usr/bin/yarn start
+ExecStart=/usr/bin/yarn start:server
 Restart=always
 RestartSec=10
 
@@ -110,7 +113,7 @@ EOF
     else
         msg_ok "No update required. ${APP} is already at ${RELEASE}"
     fi
-    exit 0
+    exit
 }
 
 start
