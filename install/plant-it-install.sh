@@ -19,8 +19,6 @@ $STD apt-get install -y \
     mc \
     sudo \
     gnupg2 \
-    mariadb-server \
-    redis \
     nginx
 msg_ok "Installed Dependencies"
 
@@ -35,21 +33,25 @@ msg_info "Installing Temurin JDK 21 (LTS)"
 $STD apt-get install -y temurin-21-jdk
 msg_ok "Setup Temurin JDK 21 (LTS)"
 
-msg_info "Setting up MariaDB"
-JWT_SECRET=$(openssl rand -base64 24 | tr -d '/+=')
-DB_NAME=plantit
-DB_USER=plantit_usr
-DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-$STD mysql -u root -e "CREATE DATABASE $DB_NAME;"
-$STD mysql -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED WITH mysql_native_password AS PASSWORD('$DB_PASS');"
-$STD mysql -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
-{
-    echo "Plant-it Credentials"
-    echo "Plant-it Database User: $DB_USER"
-    echo "Plant-it Database Password: $DB_PASS"
-    echo "Plant-it Database Name: $DB_NAME"
-} >>~/plant-it.creds
-msg_ok "Set up MariaDB"
+# Solicitar credenciales de la base de datos MySQL externa
+msg_info "Configuring External MySQL Database"
+read -p "Enter the external MySQL host (e.g., db.example.com): " MYSQL_HOST
+read -p "Enter the external MySQL port (e.g., 3306): " MYSQL_PORT
+read -p "Enter the external MySQL database name: " MYSQL_DATABASE
+read -p "Enter the external MySQL username: " MYSQL_USERNAME
+read -s -p "Enter the external MySQL password: " MYSQL_PASSWORD
+echo ""  # Salto de línea después de la contraseña
+
+msg_ok "External MySQL Database Configuration Complete"
+
+# Solicitar credenciales de Redis externo
+msg_info "Configuring External Redis"
+read -p "Enter the external Redis host (e.g., redis.example.com): " REDIS_HOST
+read -p "Enter the external Redis port (e.g., 6379): " REDIS_PORT
+read -s -p "Enter the external Redis password (leave empty if none): " REDIS_PASSWORD
+echo ""  # Salto de línea después de la contraseña
+
+msg_ok "External Redis Configuration Complete"
 
 msg_info "Setup Plant-it"
 RELEASE=$(curl -s https://api.github.com/repos/MDeLuise/plant-it/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
@@ -58,13 +60,16 @@ mkdir -p /opt/plant-it/{backend,frontend}
 mkdir -p /opt/plant-it-data
 mv -f server.jar /opt/plant-it/backend/server.jar
 
+# Generar JWT_SECRET
+JWT_SECRET=$(openssl rand -base64 24 | tr -d '/+=')
+
+# Crear archivo de configuración del servidor para MySQL y Redis externos
 cat <<EOF >/opt/plant-it/backend/server.env
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_USERNAME=$DB_USER
-MYSQL_PSW=$DB_PASS
-MYSQL_DATABASE=$DB_NAME
-MYSQL_ROOT_PASSWORD=$DB_PASS
+MYSQL_HOST=$MYSQL_HOST
+MYSQL_PORT=$MYSQL_PORT
+MYSQL_USERNAME=$MYSQL_USERNAME
+MYSQL_PASSWORD=$MYSQL_PASSWORD
+MYSQL_DATABASE=$MYSQL_DATABASE
 
 JWT_SECRET=$JWT_SECRET
 JWT_EXP=1
@@ -78,8 +83,9 @@ ALLOWED_ORIGINS=*
 
 CACHE_TYPE=redis
 CACHE_TTL=86400
-CACHE_HOST=localhost
-CACHE_PORT=6379
+CACHE_HOST=$REDIS_HOST
+CACHE_PORT=$REDIS_PORT
+CACHE_PASSWORD=$REDIS_PASSWORD
 EOF
 
 cd /opt/plant-it/frontend
