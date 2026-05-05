@@ -1,0 +1,60 @@
+{
+  "name": "Prometheus Stack",
+  "slug": "prometheus-stack",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-05-05",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 9090,
+  "documentation": "https://prometheus.io/docs/introduction/overview/",
+  "website": "https://prometheus.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/prometheus.webp",
+  "config_path": "/etc/prometheus/prometheus.yml",
+  "description": "Prometheus Stack bundles Prometheus, Alertmanager, and Blackbox Exporter in a single LXC container. Prometheus collects and stores metrics; Alertmanager handles alerts and routes notifications; Blackbox Exporter probes endpoints over HTTP, HTTPS, DNS, TCP, ICMP, and gRPC.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/prometheus-stack.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Prometheus listens on port **9090**",
+      "type": "info"
+    },
+    {
+      "text": "Alertmanager listens on port **9093**",
+      "type": "info"
+    },
+    {
+      "text": "Blackbox Exporter listens on port **9115**",
+      "type": "info"
+    },
+    {
+      "text": "Prometheus config: `/etc/prometheus/prometheus.yml`",
+      "type": "info"
+    },
+    {
+      "text": "Alertmanager config: `/etc/alertmanager/alertmanager.yml`",
+      "type": "info"
+    },
+    {
+      "text": "Blackbox Exporter config: `/opt/blackbox-exporter/blackbox.yml`",
+      "type": "info"
+    }
+  ]
+}
